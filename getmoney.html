@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Money Total</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f4f6f8;
+  padding: 15px;
+}
+
+.container {
+  max-width: 800px;
+  width: 100%;
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  margin: auto;
+  box-shadow: 0 0 10px rgba(0,0,0,.1);
+}
+
+h2 {
+  text-align: center;
+}
+
+label {
+  font-weight: bold;
+  margin-top: 12px;
+  display: block;
+}
+
+select, input[type="date"] {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px;
+  font-size: 17px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+/* Table wrapper for mobile scroll */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+  min-width: 450px;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: center;
+  font-size: 15px;
+}
+
+th {
+  background: #007bff;
+  color: white;
+}
+
+#totalMoney {
+  margin-top: 18px;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Mobile specific tweaks */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  .container {
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 20px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>Vendor Money Transactions</h2>
+
+  <label>Vendor</label>
+  <select id="vendor" onchange="showLast10()">
+    <option value="">-- Select Vendor --</option>
+  </select>
+
+  <label>From Date</label>
+  <input type="date" id="fromDate">
+
+  <label>To Date</label>
+  <input type="date" id="toDate">
+
+  <button onclick="getTotal()">Get Total</button>
+
+  <div class="table-wrap">
+    <table id="resultTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Money</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="totalMoney"></div>
+</div>
+
+<script>
+const sheetUrl = "https://script.google.com/macros/s/AKfycbxfaogvo5SKEzE9B4q9rwK0ZD07gHxgLy_AYn5gd1Q0ro9NjDqXBHDjXeLqApEPFBAy/exec";
+let sheetData = [];
+
+fetch(sheetUrl)
+  .then(res => res.json())
+  .then(data => {
+    sheetData = data.map(r => {
+      if (r.Date) {
+        const d = new Date(r.Date);
+        r.Date =
+          d.getFullYear() + "-" +
+          String(d.getMonth() + 1).padStart(2, "0") + "-" +
+          String(d.getDate()).padStart(2, "0");
+      }
+      return r;
+    });
+    loadVendors();
+  });
+
+function loadVendors() {
+  const vendors = [...new Set(sheetData.map(r => r.Vendor))];
+  const select = document.getElementById("vendor");
+  vendors.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+}
+
+function showLast10() {
+  const selectedVendor = vendor.value;
+  if (!selectedVendor) return;
+
+  const rows = sheetData
+    .filter(r => r.Vendor === selectedVendor)
+    .sort((a,b)=>b.Date.localeCompare(a.Date))
+    .slice(0,10);
+
+  renderTable(rows);
+  totalMoney.textContent = "";
+}
+
+function getTotal() {
+  if (!vendor.value || !fromDate.value || !toDate.value) {
+    alert("Please select vendor and date range");
+    return;
+  }
+
+  const filtered = sheetData.filter(r =>
+    r.Vendor === vendor.value &&
+    r.Date >= fromDate.value &&
+    r.Date <= toDate.value
+  );
+
+  let total = 0;
+  filtered.forEach(r => total += Number(r.Money) || 0);
+
+  renderTable(filtered);
+  totalMoney.textContent = "Total Money: ₹ " + total;
+}
+
+function renderTable(rows) {
+  const tbody = document.querySelector("#resultTable tbody");
+  tbody.innerHTML = "";
+
+  rows.forEach(r => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.Date}</td>
+        <td>${r.Money || 0}</td>
+        <td>${r.Note || ""}</td>
+      </tr>`;
+  });
+
+  resultTable.style.display = rows.length ? "table" : "none";
+}
+</script>
+
+</body>
+</html>

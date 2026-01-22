@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gundape Farm - Employee Manager</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 15px;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 18px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    textarea {
+      resize: none;
+    }
+
+    /* Vendor row with + button */
+    .vendor-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .add-vendor-btn {
+      min-width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 10px;
+      background: #28a745;
+      color: #fff;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .add-vendor-btn:hover {
+      background: #218838;
+    }
+
+    /* Add vendor box */
+    .add-vendor {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .vendor-save-btn {
+      padding: 10px 14px;
+      border: none;
+      background: #007bff;
+      color: #fff;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .vendor-save-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: none;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Money Button */
+    .money-btn {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      width: 100%;
+      font-size: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .money-btn:hover {
+      background: linear-gradient(135deg, #218838, #1aa179);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>🌾 ಗುಂಡಪ್ಪೆ farm</h1>
+  <p class="subtitle">Employee Management System</p>
+
+  <!-- Vendor -->
+  <div class="form-group">
+    <label>ಆಳಿನ ಹೆಸರು</label>
+    <div class="vendor-row">
+      <select id="vendor">
+        <option value="">ಆಳು ಹುಡುಕಿ</option>
+      </select>
+      <button class="add-vendor-btn" onclick="showVendorInput()">+</button>
+    </div>
+  </div>
+
+  <!-- Add Vendor Box -->
+  <div class="add-vendor hidden" id="vendorBox">
+    <input type="text" id="newVendor" placeholder="Add New Vendor">
+    <button class="vendor-save-btn" id="vendorSaveBtn" onclick="addVendor()">Save</button>
+  </div>
+
+  <div class="form-group">
+    <label>ಆಳುಗಳ ಒಟ್ಟು ಸಂಖ್ಯೆ</label>
+    <input type="number" id="employees">
+  </div>
+
+  <div class="form-group">
+    <label>ಕೆಲಸ ಮಾಡಿದ ಗಂಟೆಗಳು (Hours)</label>
+    <input type="number" id="hours" step="0.5">
+  </div>
+
+  <div class="form-group">
+    <label>ದಿನಾಂಕ</label>
+    <input type="date" id="date">
+  </div>
+
+  <div class="form-group">
+    <label>Notes</label>
+    <textarea id="notes" rows="4"></textarea>
+  </div>
+
+  <button class="submit-btn" id="saveBtn" onclick="saveData()">Save Details</button>
+
+  <button class="submit-btn" onclick="goToTotal()">Get Total</button>
+
+  <button class="money-btn" onclick="goToMoney()">💰 ಜಮಾ</button>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzQ8GcgXszecCbwJBKsmWICvfP-NLW0Jl26Ej5Nc2oPlyv8mUkkw1iDAW8H2uOVzh3e/exec";
+
+window.onload = function () {
+  fetch(API_URL + "?action=getVendors")
+    .then(res => res.json())
+    .then(vendors => {
+      const select = document.getElementById("vendor");
+      select.innerHTML = '<option value="">ಆಳು ಹುಡುಕಿ</option>';
+      vendors.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.text = v;
+        select.add(opt);
+      });
+    });
+};
+
+function showVendorInput() {
+  document.getElementById("vendorBox").classList.remove("hidden");
+  document.getElementById("newVendor").focus();
+}
+
+function addVendor() {
+  const vendorName = document.getElementById("newVendor").value.trim();
+  const btn = document.getElementById("vendorSaveBtn");
+
+  if (!vendorName) {
+    alert("Enter vendor name");
+    return;
+  }
+
+  btn.innerText = "Saving...";
+  btn.disabled = true;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addVendor",
+      vendor: vendorName
+    })
+  }).then(() => {
+    document.getElementById("newVendor").value = "";
+    document.getElementById("vendorBox").classList.add("hidden");
+    btn.innerText = "Save";
+    btn.disabled = false;
+    window.onload();
+  });
+}
+
+function saveData() {
+  const btn = document.getElementById("saveBtn");
+  btn.innerText = "Saving...";
+  btn.disabled = true;
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "saveEmployee",
+      vendor: vendor.value,
+      employees: employees.value,
+      hours: hours.value,
+      date: date.value,
+      notes: notes.value
+    })
+  }).then(() => {
+    alert("Data saved successfully");
+    btn.innerText = "Save Details";
+    btn.disabled = false;
+  });
+}
+
+function goToMoney() {
+  window.location.href = "money.html";
+}
+
+function goToTotal() {
+  window.location.href = "get-total.html";
+}
+</script>
+
+</body>
+</html>

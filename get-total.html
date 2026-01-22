@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Total Employees & Hours</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f9f9f9;
+  padding: 30px;
+}
+h1 {
+  text-align: center;
+  color: #333;
+}
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: #fff;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: bold;
+}
+select, input[type="date"] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+button {
+  margin-top: 20px;
+  padding: 10px 18px;
+  font-size: 16px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover {
+  background: #0056b3;
+}
+table {
+  width: 100%;
+  margin-top: 25px;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+th {
+  background: #007bff;
+  color: #fff;
+}
+#totalEmployees, #totalHours {
+  margin-top: 15px;
+  font-weight: bold;
+  font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>Get Total Employees & Hours</h1>
+
+  <label>ಆಳು ಹೆಸರು:</label>
+  <select id="vendor" onchange="showLast10()">
+    <option value="">--ಆಳು ಹುಡುಕಿ--</option>
+  </select>
+
+  <label>ಪ್ರಾರಂಭಿಕ ದಿನಾಂಕ:</label>
+  <input type="date" id="fromDate">
+
+  <label>ಕೊನೆಯ ದಿನಾಂಕ:</label>
+  <input type="date" id="toDate">
+
+  <button onclick="getTotal()">ಒಟ್ಟು ಲೆಕ್ಕ ಹಾಕಿ</button>
+
+  <table id="resultTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Employees</th>
+        <th>Hours</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="totalEmployees"></div>
+  <div id="totalHours"></div>
+</div>
+
+<script>
+/* 🔗 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE */
+const sheetUrl = "https://script.google.com/macros/s/AKfycbxvSIf_ZK1i-oAybZfzJIm2xqe1b3gon7nGG31PkOSxgty1yHU-0lQw3WD_DuTLCt1i/exec";
+
+let sheetData = [];
+
+/* Fetch data from Google Sheet */
+fetch(sheetUrl)
+  .then(res => res.json())
+  .then(data => {
+    sheetData = data.map(row => {
+      if (row.Date) {
+        const d = new Date(row.Date);
+        row.Date =
+          d.getFullYear() + "-" +
+          String(d.getMonth() + 1).padStart(2, "0") + "-" +
+          String(d.getDate()).padStart(2, "0");
+      }
+      return row;
+    });
+    populateVendors();
+  });
+
+/* Populate vendor dropdown */
+function populateVendors() {
+  const vendors = [...new Set(sheetData.map(r => r.Vendor))];
+  const select = document.getElementById("vendor");
+  vendors.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+}
+
+/* Show last 10 entries when vendor selected */
+function showLast10() {
+  const vendor = document.getElementById("vendor").value;
+  if (!vendor) return;
+
+  const tbody = document.querySelector("#resultTable tbody");
+  tbody.innerHTML = "";
+
+  const rows = sheetData
+    .filter(r => r.Vendor === vendor)
+    .sort((a, b) => b.Date.localeCompare(a.Date))
+    .slice(0, 10);
+
+  rows.forEach(r => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.Date}</td>
+        <td>${r.Employees || 0}</td>
+        <td>${r.Hours || 0}</td>
+        <td>${r.Notes || ""}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("resultTable").style.display =
+    rows.length ? "table" : "none";
+
+  document.getElementById("totalEmployees").textContent = "";
+  document.getElementById("totalHours").textContent = "";
+}
+
+/* Calculate totals for selected date range */
+function getTotal() {
+  const vendor = document.getElementById("vendor").value;
+  const fromDate = document.getElementById("fromDate").value;
+  const toDate = document.getElementById("toDate").value;
+
+  if (!vendor || !fromDate || !toDate) {
+    alert("Please select vendor and date range!");
+    return;
+  }
+
+  const tbody = document.querySelector("#resultTable tbody");
+  tbody.innerHTML = "";
+
+  const filtered = sheetData.filter(r =>
+    r.Vendor === vendor &&
+    r.Date >= fromDate &&
+    r.Date <= toDate
+  );
+
+  let totalEmployees = 0;
+  let totalHours = 0;
+  const dateMap = {};
+
+  filtered.forEach(r => {
+    const emp = parseInt(r.Employees) || 0;
+    const hrs = parseFloat(r.Hours) || 0;
+
+    if (!dateMap[r.Date]) {
+      dateMap[r.Date] = { emp: 0, hrs: 0, notes: [] };
+    }
+
+    dateMap[r.Date].emp += emp;
+    dateMap[r.Date].hrs += hrs;
+    if (r.Notes) dateMap[r.Date].notes.push(r.Notes);
+
+    totalEmployees += emp;
+    totalHours += hrs;
+  });
+
+  Object.keys(dateMap).sort().forEach(date => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${date}</td>
+        <td>${dateMap[date].emp}</td>
+        <td>${dateMap[date].hrs}</td>
+        <td>${dateMap[date].notes.join(", ")}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById("resultTable").style.display =
+    Object.keys(dateMap).length ? "table" : "none";
+
+  document.getElementById("totalEmployees").textContent =
+    "Total Employees: " + totalEmployees;
+
+  document.getElementById("totalHours").textContent =
+    "Total Hours: " + totalHours;
+}
+</script>
+
+</body>
+</html>
